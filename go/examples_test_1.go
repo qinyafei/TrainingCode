@@ -23,6 +23,9 @@ os
 strings
 log
 encoding/json
+flag
+context
+testing
 12 reflect
 */
 
