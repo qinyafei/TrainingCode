@@ -1,9 +1,16 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
+	"flag"
 	"fmt"
+	"os"
+	"reflect"
 	"strconv"
+	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 /**
@@ -249,6 +256,148 @@ func Test_channel_deadlock() {
 
 //------------------
 //standard library
+func Test_string() {
+
+	body := `{+
+	   "id" : 113,+
+	   "jsonrpc" : "2.0",+
+	   "method" : "brest",+
+	   "params" : {+
+	      "args" : {
+	         "password" : "123123",+
+	         "user" : "admin"+
+	      },+
+	      "call" : "Security.Session.login"+
+	   }+
+	   }`
+
+	fmt.Println(body)
+
+	// testfor string
+	str := "HelloWord"
+	l1 := len([]rune(str))
+	l2 := bytes.Count([]byte(str), nil) - 1
+	l3 := strings.Count(str, "") - 1
+	l4 := utf8.RuneCountInString(str)
+	fmt.Println(l1, l2, l3, l4)
+
+}
+
+func Test_flag() {
+	ok := flag.Bool("ok", false, "is ok")
+	id := flag.Int("id", 0, "id")
+	port := flag.String("port", ":8080", "http listen port")
+	var name string
+	flag.StringVar(&name, "name", "123", "name")
+
+	flag.Parse()
+
+	fmt.Println("ok:", *ok)
+	fmt.Println("id:", *id)
+	fmt.Println("port:", *port)
+	fmt.Println("name:", name)
+}
+
+////////test json
+
+type ConfigStruct struct {
+	Host              string   `json:"host"`
+	Port              int      `json:"port"`
+	AnalyticsFile     string   `json:"analytics_file"`
+	StaticFileVersion int      `json:"static_file_version"`
+	StaticDir         string   `json:"static_dir"`
+	TemplatesDir      string   `json:"templates_dir"`
+	SerTcpSocketHost  string   `json:"serTcpSocketHost"`
+	SerTcpSocketPort  int      `json:"serTcpSocketPort"`
+	Fruits            []string `json:"fruits"`
+}
+
+type Other struct {
+	SerTcpSocketHost string   `json:"serTcpSocketHost"`
+	SerTcpSocketPort int      `json:"serTcpSocketPort"`
+	Fruits           []string `json:"fruits"`
+}
+
+func Test_json() {
+	jsonStr := `{"host": "http://localhost:9090","port": 9090,
+	"analytics_file": "","static_file_version": 1,
+	"static_dir": "E:/Project/goTest/src/",
+	"templates_dir": "E:/Project/goTest/src/templates/",
+	"serTcpSocketHost": ":12340","serTcpSocketPort": 12340,
+	"fruits": ["apple", "peach"]}`
+
+	//json str 转map
+	var dat map[string]interface{}
+	if err := json.Unmarshal([]byte(jsonStr), &dat); err == nil {
+		fmt.Println("==============json str 转map=======================")
+		fmt.Println(dat)
+		fmt.Println(dat["host"])
+	}
+
+	//json str 转struct
+	var config ConfigStruct
+	if err := json.Unmarshal([]byte(jsonStr), &config); err == nil {
+		fmt.Println("================json str 转struct==")
+		fmt.Println(config)
+		fmt.Println(config.Host)
+	}
+
+	//json str 转struct(部份字段)
+	var part Other
+	if err := json.Unmarshal([]byte(jsonStr), &part); err == nil {
+		fmt.Println("================json str 转struct==")
+		fmt.Println(part)
+		fmt.Println(part.SerTcpSocketPort)
+	}
+
+	//struct 到json str
+	if b, err := json.Marshal(config); err == nil {
+		fmt.Println("================struct 到json str==")
+		fmt.Println(string(b))
+	}
+
+	//map 到json str
+	fmt.Println("================map 到json str=====================")
+	enc := json.NewEncoder(os.Stdout)
+	enc.Encode(dat)
+
+	//array 到 json str
+	arr := []string{"hello", "apple", "python", "golang", "base", "peach", "pear"}
+	lang, err := json.Marshal(arr)
+	if err == nil {
+		fmt.Println("================array 到 json str==")
+		fmt.Println(string(lang))
+	}
+
+	//json 到 []string
+	var wo []string
+	if err := json.Unmarshal(lang, &wo); err == nil {
+		fmt.Println("================json 到 []string==")
+		fmt.Println(wo)
+	}
+}
+
+//test reflect
+
+func Test_reflect_struct_tag() {
+	type User struct {
+		UserId   int    `json:"user_id" bson:"user_id"`
+		UserName string `json:"user_name" bson:"user_name"`
+	}
+	// 输出json格式
+	u := &User{UserId: 1, UserName: "tony"}
+	j, _ := json.Marshal(u)
+	fmt.Println(string(j))
+	// 输出内容：{"user_id":1,"user_name":"tony"}
+
+	// 获取tag中的内容
+	t := reflect.TypeOf(u)
+	field := t.Elem().Field(0)
+	fmt.Println(field.Tag.Get("json"))
+	// 输出：user_id
+	fmt.Println(field.Tag.Get("bson"))
+	// 输出：user_id
+}
 
 //-------------------------end
 
@@ -312,11 +461,14 @@ func Test_interface3() {
 }
 
 //-------------------------end
-
-func main() {
+//func main() {
+func test_main() {
 	fmt.Printf("hello golang \n")
 	fmt.Println("hello golang", 1)
 	fmt.Printf("hello golang:%s", "world")
+
+	Test_flag()
+	Test_json()
 
 	Test_classConstruct()
 	Test_class2()
