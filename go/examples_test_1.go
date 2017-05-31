@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"reflect"
 	"strconv"
@@ -82,6 +83,30 @@ func Test_class2() {
 
 }
 
+type Base struct {
+	id   int
+	name string
+}
+
+func (b *Base) Say(content string) bool {
+	fmt.Println(content)
+	return true
+}
+
+type Child struct {
+	Base
+}
+
+func (c *Child) Say(content string) {
+	fmt.Println("Child say:", content)
+}
+
+func Test_Class3() {
+	c := new(Child)
+	c.Base.Say("hello")
+	c.Say("hello")
+}
+
 //---------------------------end
 
 //------------------------
@@ -157,6 +182,10 @@ func Test_for() {
 	for sum < 20 {
 		sum += 5
 	}
+}
+
+func Test_range() {
+
 }
 
 //-------------------------end
@@ -318,6 +347,12 @@ type Other struct {
 	Fruits           []string `json:"fruits"`
 }
 
+type User struct {
+	Id   string `json:id`
+	Name string `json:name`
+	Type string `json:type`
+}
+
 func Test_json() {
 	jsonStr := `{"host": "http://localhost:9090","port": 9090,
 	"analytics_file": "","static_file_version": 1,
@@ -375,20 +410,51 @@ func Test_json() {
 		fmt.Println("================json 到 []string==")
 		fmt.Println(wo)
 	}
+
+	//
+	var testJson = `[
+	{
+	"id": "21341231231",
+	"name": "Bob" ,
+	"type": "user"
+	},
+	{
+	"id": "31231242322",
+	"name": "Samantha" ,
+	"type": "user"
+	}
+	]`
+
+	var users []User
+	if err := json.Unmarshal([]byte(testJson), &users); err == nil {
+		fmt.Println(users[0].Id, users[0].Name, users[0].Type)
+	}
+
 }
 
 //test reflect
-
 func Test_reflect_struct_tag() {
 	type User struct {
 		UserId   int    `json:"user_id" bson:"user_id"`
 		UserName string `json:"user_name" bson:"user_name"`
 	}
 	// 输出json格式
-	u := &User{UserId: 1, UserName: "tony"}
+	u := User{UserId: 1, UserName: "tony"}
 	j, _ := json.Marshal(u)
 	fmt.Println(string(j))
 	// 输出内容：{"user_id":1,"user_name":"tony"}
+
+	type Registry struct {
+		Ip   string `json:"ip" bson:"ip"`
+		Name string `json:"name" bson:"name"`
+	}
+	reg := Registry{Ip: "123.0.0.1", Name: "server01"}
+
+	value, err := json.Marshal(reg)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(value)
 
 	// 获取tag中的内容
 	t := reflect.TypeOf(u)
@@ -460,18 +526,67 @@ func Test_interface3() {
 	}
 }
 
+//------------------
+//log
+func Test_log() {
+	fileName := "test.log"
+	logFile, err := os.Create(fileName)
+	defer logFile.Close()
+	if err != nil {
+		log.Fatal("open file error")
+	}
+
+	debugLog := log.New(logFile, "[Debug]", log.Llongfile)
+	debugLog.Println("a debug message here")
+	debugLog.SetPrefix("[Info]")
+	debugLog.Println("a info message here")
+	debugLog.SetFlags(debugLog.Flags() | log.LstdFlags)
+	debugLog.Println("a different prefix")
+}
+
+//end
+
+//---------------------------
+//interface type
+//muxEntry.Handler是一个接口
+type MyHandler interface {
+	ServeHTTP(response int, request int)
+}
+
+type HandlerFunc func(response int, request int)
+
+func (f HandlerFunc) ServeHTTP(res int, req int) {
+	f(res, req)
+}
+
+func HelloServer(res int, req int) {
+	fmt.Println(res, req)
+}
+
+func Test_type() {
+	var myhdl MyHandler
+	myhdl = HandlerFunc(HelloServer)
+	fmt.Println(myhdl)
+}
+
+//end
+
 //-------------------------end
-//func main() {
-func test_main() {
+func main() {
+	//func test_main() {
 	fmt.Printf("hello golang \n")
 	fmt.Println("hello golang", 1)
 	fmt.Printf("hello golang:%s", "world")
 
+	Test_log()
+
+	//Test_reflect_struct_tag()
 	Test_flag()
 	Test_json()
 
 	Test_classConstruct()
 	Test_class2()
+	Test_Class3()
 	key := "qinyafei"
 	Test_map_getvalue(key)
 	Test_array()
